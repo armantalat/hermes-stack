@@ -7,6 +7,7 @@
 # ============================================================
 from __future__ import annotations
 
+import inspect
 import os
 import sys
 import time
@@ -124,13 +125,25 @@ def main() -> int:
 
     # ------------------------------------------------------ create repos
     print(f"[1/5] Creating (or reusing) Space {repo_id} (sdk=docker, cpu-basic, {'private' if PRIVATE_SPACE else 'public'})…")
+    # huggingface_hub renamed `sdk` -> `space_sdk` and dropped the old alias in
+    # 1.x, so pick whatever the installed version actually accepts.
+    _params = inspect.signature(api.create_repo).parameters
+    _space_kwargs: dict[str, str] = {}
+    if "space_sdk" in _params:
+        _space_kwargs["space_sdk"] = "docker"
+    elif "sdk" in _params:
+        _space_kwargs["sdk"] = "docker"
+    else:
+        print("::error:: installed huggingface_hub accepts neither 'space_sdk' nor 'sdk' — pin huggingface_hub<1")
+        return 1
+    if "space_hardware" in _params:
+        _space_kwargs["space_hardware"] = "cpu-basic"
     url = api.create_repo(
         repo_id=repo_id,
         repo_type="space",
-        sdk="docker",
         private=PRIVATE_SPACE,
         exist_ok=True,
-        space_hardware="cpu-basic",
+        **_space_kwargs,
     )
     print(f"      -> {url}")
 
