@@ -1,0 +1,4 @@
+# never commit real configuration / state
+.env
+data/
+*.log
